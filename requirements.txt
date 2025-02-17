@@ -1,0 +1,17 @@
+# Django & REST Framework
+Django>=5.1.5
+djangorestframework>=3.14.0
+django-cors-headers>=4.7.0
+# AWS
+boto3>=1.26.0
+botocore>=1.29.0
+
+# Authentication & Security
+PyJWT>=2.6.0
+python-dotenv>=1.0.0
+
+# Database
+mysqlclient>=2.1.1
+
+# Misc
+uuid

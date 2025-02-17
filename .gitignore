@@ -26,13 +26,13 @@ node_modules
 /frontend/yarn-debug.log*
 /frontend/yarn-error.log*
 
-
+/backend/cliquepay/migrations/__pycache__
 #backend
-/backend/watchtower/__pycache__
-/backend/watchtower/migrations/__pycache__
+/backend/cliquepay/__pycache__
+/backend/cliquepay/migrations/__pycache__
 /backend/api/__pycache__
 /backend/backend/__pycache__
-
+/backend/backend/.env
 # Django
 /backend/*.log
 /backend/local_settings.py
@@ -46,7 +46,6 @@ node_modules
 /backend/env/
 /backend/ENV/
 /backend/.env
-
 
 .idea/
 .vscode/

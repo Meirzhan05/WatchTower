@@ -2,6 +2,15 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
-    path('',views.getData),
-    path('add',views.addItem)
-]
+    path('', views.api_root, name='api-root'),
+    path('api/signup/',views.register_user, name='register_user'),
+    path('api/verify/',views.verify_signup, name='verify_signup'),
+    path('api/login/',views.user_login, name='user_login'),
+    path('api/renew/',views.renew_tokens, name='renew_tokens'),
+    path('api/logout/',views.logout_user, name='logout_user'),
+    path('api/reset-password/',views.initiate_reset_password, name='initiate_reset_password'),
+    path('api/confirm-reset-password/',views.confirm_reset_password, name='confirm_reset_password'),
+    path('api/friendlist/',views.get_user_friends, name='get_user_friends'),
+    path('api/resend-code/',views.get_resend_code, name='resend_code')
+
+    ]

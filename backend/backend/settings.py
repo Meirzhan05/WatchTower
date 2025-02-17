@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
-
+import os
+from dotenv import load_dotenv
+load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -19,15 +21,50 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
+
+# CORS settings
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",  # Vite's default development server
+]
+
+CORS_ALLOW_CREDENTIALS = True
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
+
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-#x^zvb6%yhwoxuc0^)tf9kbn(zoi7h3_2h5nt%5nr0i+8zz2(b'
+SECRET_KEY = os.getenv('DJANGO_SECRET')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
 ALLOWED_HOSTS = []
 
-
+# AWS COGNITO CREDENTIALS
+COGNITO_AWS_REGION = os.getenv('COGNITO_AWS_REGION')
+COGNITO_USER_POOL_ID = os.getenv('COGNITO_USER_POOL_ID')
+COGNITO_APP_CLIENT_ID = os.getenv('COGNITO_APP_CLIENT_ID')
+COGNITO_APP_CLIENT_SECRET = os.getenv('COGNITO_APP_CLIENT_SECRET') 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID')
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY')
 # Application definition
 
 INSTALLED_APPS = [
@@ -38,13 +75,17 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     
-    
-    'watchtower',
+    # manually installed apps
+    'cliquepay',
     'rest_framework',
-
+    'boto3',
+    'botocore',
+    'jwt',
+    'corsheaders',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware', 
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -73,6 +114,11 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'backend.wsgi.application'
+DB_NAME = os.getenv('DB_NAME')
+DB_USER = os.getenv('DB_USER')
+DB_PASSWORD = os.getenv('DB_PASSWORD')
+DB_HOST = os.getenv('DB_HOST')
+DB_PORT = os.getenv('DB_PORT')
 
 
 # Database
@@ -80,8 +126,15 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': DB_NAME,
+        'USER': DB_USER,
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
+        'PORT': DB_PORT,
+        'OPTIONS': {
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"
+        }
     }
 }
 
