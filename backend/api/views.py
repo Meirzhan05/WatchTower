@@ -59,6 +59,16 @@ def api_root(request, format=None):
                 'url': reverse('get_user_friends', request=request, format=format),
                 'method': 'POST',
                 'description': 'Extracts the user_sub from ID token,gets the user_id from database using user_sub and then makes a db query to get user friends using the user_id.'
+            },
+            'user-access': {
+                'url': reverse('verify_user_access', request=request, format=format),
+                'method': 'POST',
+                'description': 'Posts the access token to aws and verfies if the user is registered.'
+            },
+            'user-profile': {
+                'url': reverse('get_user_profile', request=request, format=format),
+                'method': 'POST',
+                'description': 'Gets the user details from the database.'
             }
         },
         'version': 'development',
@@ -346,6 +356,60 @@ def get_resend_code(request):
             return Response(result, status=status.HTTP_200_OK)
 
         return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def verify_user_access(request):
+    """
+    confirm if the user is allowed to access certain or all pages.
+    
+    Request body:
+    {
+        "access_token" : "QwerTy"
+    }
+    """
+    serializer = VerifyUserAccessSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        result = cognito.check_user_auth(serializer.validated_data['access_token'])
+        if result['status'] == 'SUCCESS':
+            return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def get_user_profile(request):
+    """
+    Get the user profile from database by just providing the idToken.
+    Returns user profile details.
+
+    Request body:
+    {
+        "id_token" : "QwerTy"
+    } 
+    """
+    serializer = GetUserProfileSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        getId = cognito.get_user_id(serializer.validated_data['id_token'])
+        if getId['status'] == 'SUCCESS':
+            db = DatabaseService()
+            result = db.get_user_by_cognito_id(getId['user_sub'])
+            if result['status'] == 'SUCCESS':
+                return Response(result, status=status.HTTP_200_OK)
+            return Response(result, status=status.HTTP_404_NOT_FOUND)
+        return Response(getId, status=status.HTTP_401_UNAUTHORIZED)
+
 
     return Response({
         'status': 'error',

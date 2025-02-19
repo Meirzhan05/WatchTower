@@ -14,204 +14,73 @@
 - `https://www.youtube.com/watch?v=cJveiktaOSQ&t=486s&ab_channel=PedroTech`
 
 ## Backend Structure
-
 ```
 /backend/               # Main project directory
 ├── backend/           # Project configuration directory
-│   ├── settings.py    # Project settings
-│   ├── urls.py       # Main URL configuration
-│   ├── wsgi.py       # WSGI configuration
-│   └── asgi.py       # ASGI configuration
+│   ├── asgi.py        
+│   ├── settings.py    # in this file we declare the dependencies and env variables 
+│   ├── urls.py        
+│   ├── wsgi.py        
+│   └── __init__.py
 │
-├── api/              # API application
-│   ├── views.py      # API endpoint logic
-│   ├── urls.py       # API route definitions
-│   └── serializers.py # Data serialization
+├── api/               # API application
+│   ├── __init__.py
+│   ├── serializers.py # Data serialization
+│   ├── urls.py        # API route definitions
+│   └── views.py       # API endpoint logic
 │
-└── watchtower/       # Main application
-    ├── models.py     # Database models
-    ├── admin.py      # Admin interface config
-    ├── views.py      # View logic
-    └── migrations/   # Database migrations
+├── cliquepay/         # Core Django app
+│   ├── __init__.py
+│   ├── admin.py      
+│   ├── apps.py        
+│   ├── aws_cognito.py # AWS Cognito integration
+│   ├── db_service.py  # Database helper functions
+│   ├── migrations/    # Database migrations
+│   ├── models.py      # Database models
+│   ├── tests.py       
+│   └── views.py       
+│
+└── manage.py          # Django entry point
 ```
 
-- To preview api endpoints configure your .env file, enter `/backend` and run `python manage.py runserver`.
+## Files that we mostly work on
+- `backend/settings.py` : when we use new libraries or env variables
+- `api/serializers.py` : Serializers convert incoming data from another language, typically JS for web/api stuff, into python objects.
 
-# WatchTower Git Workflow Guide
 
-## Initial Setup
+- `api/urls.py` : to specify our backend api endpoints/urls.
+- `api/views.py` : in this file we :
+    1. set up the api functions, their content and logic (mostly request/response logic).
+    2. set up views so that we as developers have a clean interface to view and test our api endpoints when the server is running.
+- `cliquepay/aws_cognito.py` : user-authentication,etc. goes here
+- `cliquepay/db_service.py` : all the functions that fetch or update anything to the database are here
+- `cliquepay/models.py` : A Django model is the built-in feature that Django uses to create tables, their fields, and various constraints. Basically, we never directly execute queries in my sql, write the code in models and django takes care of it.
 
-1. **Clone the main repository**
-```bash
-git clone https://github.com/CSCI-321-WatchTower/WatchTower.git
-cd WatchTower
-```
+## To set up the development environment for Django
+- install all the dependencies mentioned in the `requirements.txt` file using `pip install`.
+- make sure you got all the environment variables using `.env.example` file.
+- to set-up the database models execute:
+    - `cd backend`
+    - `python manage.py makemigrations`
+    - `python manage.py migrate`
+- You need to perform the above steps every time you change the database models.
+- Execute `python manage.py runserver` to run your server on localhost.
+- With that done, you're all set! 
 
-2. **Add your fork as a remote**
-```bash
-git remote add origin https://github.com/YourUsername/WatchTower.git
-git remote add upstream https://github.com/CSCI-321-WatchTower/WatchTower.git
-```
+## Common Errors/Mistakes
+- If you encounter errors with your database, delete the `cliquepay/migrations` directory.
+- run these again after addressing the errors:
+    - `python manage.py makemigrations`
+    - `python manage.py migrate`
 
-## Daily Workflow
+## Working with git 
+- always run `git fetch upstream`, followed by `git rebase upstream/main` before you start or end your work. (if you call the base (the main repository, not forked one) repository `upstream`)
 
-1. **Update your local main branch**
-```bash
-git checkout main
-git fetch upstream
-git rebase upstream/main
-```
+## Django secret
+- To generate a new Django secret key, you can use Django's built-in utility function. This can be done directly in a Python shell or within your Django project's `manage.py` shell
 
-2. **Create a feature branch**
-```bash
-git checkout -b feature/your-feature-name
-```
+`>>from django.core.management.utils import get_random_secret_key`
+`>print(get_random_secret_key())`
+- This will output a new, randomly generated secret key that you can then copy and paste into your Django project's `settings.py` file as the value for `SECRET_KEY.Python`
 
-3. **Make changes and commit**
-```bash
-git add .
-git commit -m "feat: your meaningful commit message"
-```
-
-## Commit Message Format
-```
-type: subject
-
-body (optional)
-
-footer (optional)
-```
-
-Types:
-- feat: new feature
-- fix: bug fix
-- docs: documentation
-- style: formatting
-- refactor: code restructuring
-- test: adding tests
-- chore: maintenance
-
-## Handling Updates
-
-1. **Update feature branch with main**
-```bash
-git checkout feature/your-feature-name
-git fetch upstream
-git rebase upstream/main
-```
-
-2. **If conflicts occur**
-```bash
-# Resolve conflicts in VS Code
-git add .
-git rebase --continue
-```
-
-3. **If rebase gets messy**
-```bash
-git rebase --abort
-git reset --hard origin/feature/your-feature-name
-```
-
-## Push Changes
-
-1. **Push to your fork**
-```bash
-git push origin feature/your-feature-name
-```
-
-2. **If push is rejected**
-```bash
-git push --force-with-lease origin feature/your-feature-name
-```
-
-## Clean Up
-
-1. **Clean up local branches**
-```bash
-git fetch -p
-git branch -vv | findstr ": gone]" | foreach { git branch -D $_.Split()[0] }
-```
-
-2. **Reset to clean state**
-```bash
-git reset --hard upstream/main
-git clean -fd
-```
-
-## Project-Specific Setup
-
-1. **Environment setup**
-```bash
-cd backend
-python -m venv venv
-.\venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-2. **Configure environment**
-```bash
-copy .env.example .env
-# Edit .env with your settings
-```
-
-## Git Configuration
-
-```bash
-# Configure Git for rebasing
-git config pull.rebase true
-git config branch.main.rebase true
-
-# Set VS Code as default editor
-git config --global core.editor "code --wait"
-```
-
-## Troubleshooting
-
-1. **Stuck in rebase**
-```bash
-# Check status
-git status
-
-# Choose one:
-git rebase --continue
-git rebase --abort
-git rebase --skip
-```
-
-2. **Reset to clean state**
-```bash
-# Create backup
-git checkout -b backup-branch
-
-# Reset main
-git checkout main
-git reset --hard upstream/main
-```
-
-## Best Practices
-
-1. **Before starting work**
-```bash
-git checkout main
-git fetch upstream
-git rebase upstream/main
-git checkout -b feature/new-feature
-```
-
-2. **Before pushing changes**
-```bash
-git fetch upstream
-git rebase upstream/main
-git push origin feature/new-feature
-```
-
-3. **Keep commits atomic**
-- One logical change per commit
-- Use meaningful commit messages
-- Reference issues in commits
-
-4. **Branch naming**
-- feature/feature-name
-- fix/bug-name
-- docs/documentation-update
+`DJANGO_SECRET = 'your_new_secret_key'`

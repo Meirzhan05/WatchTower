@@ -47,7 +47,7 @@ class DatabaseService:
     @staticmethod
     def get_user_by_cognito_id(cognito_id):
         """
-        Retrieve user by Cognito ID
+        Retrieve user info by Cognito ID
         
         Args:
             cognito_id (str): Cognito user ID
@@ -60,13 +60,14 @@ class DatabaseService:
             return {
                 'status': 'SUCCESS',
                 'user_data': {
-                    'id': user.id,
-                    'name': user.name,
+                    'username': user.name,
                     'full_name': user.full_name,
                     'email': user.email,
                     'phone_number': user.phone_number,
                     'created_at': user.created_at,
-                    'updated_at': user.updated_at
+                    'updated_at': user.updated_at,
+                    'currency' : user.currency,
+                    'profile_photo' : user.avatar_url,
                 }
             }
         except User.DoesNotExist:

@@ -450,3 +450,55 @@ class CognitoService:
                 'status': 'ERROR',
                 'message': str(e)
             }
+    def check_user_auth(self, access_token):
+        """
+        Verify if the access token is valid and get user information
+        
+        Args:
+            access_token (str): The access token from the client
+            
+        Returns:
+            dict: User information or error message
+        """
+        try:
+            # Get user information using the access token
+            response = self.client.get_user(
+                AccessToken=access_token
+            )
+            
+            # Extract user sub (unique identifier)
+            user_sub = None
+            for attr in response['UserAttributes']:
+                if attr['Name'] == 'sub':
+                    user_sub = attr['Value']
+                    break
+            
+            if not user_sub:
+                return {
+                    'status': 'ERROR',
+                    'message': 'Could not extract user sub from response'
+                }
+            
+            return {
+                'status': 'SUCCESS',
+                'user_sub': user_sub,
+                'username': response['Username'],
+                'is_confirmed': True  # If we get here, user is confirmed
+            }
+            
+        except self.client.exceptions.NotAuthorizedException:
+            return {
+                'status': 'ERROR',
+                'message': 'Invalid or expired access token'
+            }
+        except self.client.exceptions.UserNotFoundException:
+            return {
+                'status': 'ERROR',
+                'message': 'User not found'
+            }
+        except ClientError as e:
+            return {
+                'status': 'ERROR',
+                'error_code': e.response['Error']['Code'],
+                'message': e.response['Error']['Message']
+            }

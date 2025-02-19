@@ -53,3 +53,9 @@ class GetUserFriendsSerializer(serializers.Serializer):
 
 class GetResentVerificationCodeSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=255, required=True)
+
+class VerifyUserAccessSerializer(serializers.Serializer):
+    access_token = serializers.CharField(required=True)
+
+class GetUserProfileSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)
