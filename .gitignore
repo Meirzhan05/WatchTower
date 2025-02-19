@@ -43,6 +43,7 @@ node_modules
 
 # Virtual Environment
 /backend/venv/
+/backend/.venv/
 /backend/env/
 /backend/ENV/
 /backend/.env
