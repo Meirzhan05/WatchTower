@@ -7,17 +7,16 @@ function Navbar_home() {
 
   return (
     <div>
-      {/* Navbar */}
       <nav className="bg-black max-h-[11vh] text-white p-4 flex justify-between items-center">
-        <div className="flex items-center gap-6"> {/* Increased gap from 2 to 6 for ~1 inch spacing */}
+        <div className="flex items-center gap-6"> 
           <img 
             src="/images/Watchtower-no-words.png" 
             alt="WatchTower Logo" 
-            className="h-28" // Increased from h-8 to h-24 (3x larger)
+            className="h-27" // Increased from h-8 to h-24 (3x larger)
           />
           <h1 className="text-2xl font-semibold">CliquePay</h1>
         </div>
-        <div className="flex gap-4 mr-8"> {/* Added mr-8 for ~0.5 inch margin */}
+        <div className="flex gap-4 mr-8"> 
           <Button 
             className="bg-yellow-400 hover:bg-yellow-500 text-black"  
             onClick={() => navigate('/signup')}

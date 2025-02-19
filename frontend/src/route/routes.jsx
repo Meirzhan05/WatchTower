@@ -15,6 +15,10 @@ const router = createBrowserRouter([
   {
     path:"/verify",
     element: < Verify/>
+  },
+  {
+    path:"/profile",
+    element: < Verify/>
   }
 ]);
 

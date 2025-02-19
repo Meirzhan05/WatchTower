@@ -39,7 +39,7 @@ function Verify() {
         // Verification successful
         console.log('Verification successful:', data);
         Cookies.remove('username');
-        navigate('/login');
+        navigate('/profile');
       } else {
         // Verification failed
         console.error('Verification failed:', data);
