@@ -4,6 +4,8 @@ import { useNavigate } from "react-router-dom";
 import Cookies from 'js-cookie';
 
 export default function SignupPage() {
+
+
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     username: "",
@@ -13,6 +15,13 @@ export default function SignupPage() {
     password: "",
     confirmPassword: "",
   });
+
+  useEffect(() => {
+    const idToken = Cookies.get('idToken');
+    if (idToken) {
+        navigate('/profile');
+    }
+  }, [navigate]);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);

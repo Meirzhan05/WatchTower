@@ -12,7 +12,7 @@ function Navbar_home() {
           <img 
             src="/images/Watchtower-no-words.png" 
             alt="WatchTower Logo" 
-            className="h-27" // Increased from h-8 to h-24 (3x larger)
+            className="h-27"
           />
           <h1 className="text-2xl font-semibold">CliquePay</h1>
         </div>
