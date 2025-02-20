@@ -91,7 +91,7 @@ function Login() {
     };
 
     return (
-        <div className="min-h-screen bg-blue-600 text-white flex items-center justify-center">
+        <div className="min-h-screen bg-blue-800 text-white flex items-center justify-center">
             <div className="bg-white text-black p-8 rounded-lg shadow-lg w-96">
                 <h2 className="text-2xl font-bold mb-4 text-center">Login</h2>
                 

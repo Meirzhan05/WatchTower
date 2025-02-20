@@ -1,76 +1,102 @@
-import Cookies from 'js-cookie';
-import { useState, useEffect } from 'react';
+// TODO: add the ability to update user profile
 
-export default function UserProfile() {
-    const [user, setUser] = useState({
-        name: 'John Doe',
-        email: 'john@example.com',
-        phone: '+1 (555) 123-4567',
-        profilePicture: 'https://via.placeholder.com/150'
-    });
+import { useState, useEffect } from "react"
+import { useNavigate } from "react-router-dom"
+import Cookies from "js-cookie"
+import { Mail, Phone, Calendar, DollarSign, Clock } from "lucide-react"
 
-    useEffect(() => {
-        const fetchUserProfile = async () => {
-            try {
-                const id_token = Cookies.get('idToken');
-                if (!id_token) {
-                    navigate('/login');
-                    return;
-                }
+const UserProfile = () => {
+  const [user, setUser] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+  const navigate = useNavigate()
 
-                const response = await fetch('http://127.0.0.1:8000/api/user-profile/', {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify({ id_token }),
-                });
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const id_token = Cookies.get("idToken")
+        if (!id_token) {
+          navigate("/login")
+          return
+        }
 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch user profile');
-                }
+        const response = await fetch("http://127.0.0.1:8000/api/user-profile/", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id_token }),
+        })
 
-                const data = await response.json();
-                console.log(data)
-                setUser(data.user_data);
-            } catch (error) {
-                console.error('Error fetching profile:', error);
-            }
-        };
+        if (!response.ok) {
+          throw new Error("Failed to fetch user profile")
+        }
 
-        fetchUserProfile();
-    }, []);
+        const data = await response.json()
+        setUser(data.user_data)
+        setLoading(false)
+      } catch (error) {
+        console.error("Error fetching profile:", error)
+        setError("Failed to load user profile. Please try again later.")
+        setLoading(false)
+      }
+    }
 
+    fetchUserProfile()
+  }, [navigate])
+
+  if (loading) {
+    return <div className="flex justify-center items-center h-screen text-2xl text-white bg-blue-800">Loading...</div>
+  }
+
+  if (error) {
+    return <div className="flex justify-center items-center h-screen text-2xl text-white bg-blue-800">{error}</div>
+  }
+
+  if (!user) {
     return (
-        <div className="min-h-screen bg-blue-600 text-white flex items-center justify-center">
-            <div className="bg-white text-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full">
-                <div className="flex flex-col items-center">
+      <div className="flex justify-center items-center h-screen text-2xl text-white bg-blue-800">
+        No user data available.
+      </div>
+    )
+  }
 
-                    <img 
-                        src={user.profile_photo} 
-                        alt="Profile"
-                        className="w-32 h-32 rounded-full border-4 border-blue-600 mb-4"
-                    />
-                    
-                    <div className="text-center">
-                        <h1 className="text-2xl font-bold mb-2">{user.full_name}</h1>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-center gap-2">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                                </svg>
-                                <span>{user.email}</span>
-                            </div>
-                            <div className="flex items-center justify-center gap-2">
-                                <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                                </svg>
-                                <span>{user.phone_number}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-blue-800 text-white min-h-screen flex flex-col items-center p-8 font-sans">
+      <div className="flex flex-col items-center mb-8">
+        <img
+          src={user.profile_photo || "/placeholder.svg?height=150&width=150"}
+          alt={user.full_name}
+          className="w-36 h-36 rounded-full object-cover border-4 border-white mb-4"
+        />
+        <h1 className="text-3xl font-bold mb-2">{user.full_name}</h1>
+        <p className="text-xl text-blue-200">@{user.username}</p>
+      </div>
+      <div className="bg-blue-900 rounded-lg p-8 w-full max-w-md shadow-lg">
+        <InfoItem icon={<Mail className="text-blue-300" size={20} />} text={user.email} />
+        <InfoItem icon={<Phone className="text-blue-300" size={20} />} text={user.phone_number || "Not provided"} />
+        <InfoItem
+          icon={<DollarSign className="text-blue-300" size={20} />}
+          text={`Preferred Currency: ${user.currency}`}
+        />
+        <InfoItem
+          icon={<Calendar className="text-blue-300" size={20} />}
+          text={`Joined: ${new Date(user.created_at).toLocaleDateString()}`}
+        />
+        <InfoItem
+          icon={<Clock className="text-blue-300" size={20} />}
+          text={`Last Updated: ${new Date(user.updated_at).toLocaleDateString()}`}
+        />
+      </div>
+    </div>
+  )
 }
+
+const InfoItem = ({ icon, text }) => (
+  <div className="flex items-center mb-4 last:mb-0">
+    <span className="mr-4">{icon}</span>
+    <span className="text-blue-100">{text}</span>
+  </div>
+)
+
+export default UserProfile

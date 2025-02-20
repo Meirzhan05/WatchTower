@@ -46,7 +46,7 @@ node_modules
 /backend/.venv/
 /backend/env/
 /backend/ENV/
-/backend/.env
+/backend/.env/
 
 .idea/
 .vscode/
