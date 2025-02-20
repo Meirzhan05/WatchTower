@@ -14,4 +14,4 @@ urlpatterns = [
     path('api/resend-code/',views.get_resend_code, name='resend_code'),
     path('api/verify-user-access/',views.verify_user_access, name='verify_user_access'),
     path('api/user-profile/',views.get_user_profile, name='get_user_profile'),
-    ]
+]
