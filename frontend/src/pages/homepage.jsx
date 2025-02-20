@@ -5,9 +5,8 @@ export default function HomePage() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-blue-600 text-white">
+    <div className="min-h-screen bg-blue-800 text-white">
       <Navbar_home/>
-      {/* Hero Section */}
       <section className="flex flex-col items-center justify-center h-[80vh] text-center px-4">
         <h2 className="text-4xl md:text-6xl font-bold mb-4">Track your expenses, to the penny</h2>
         <p className="text-lg md:text-xl mb-6 max-w-2xl">

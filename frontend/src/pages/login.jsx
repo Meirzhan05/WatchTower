@@ -78,7 +78,7 @@ function Login() {
                     path: '/'
                 });
 
-                navigate('/dashboard');
+                navigate('/profile');
             } else {
                 setError(data.message || "Login failed. Please check your credentials.");
             }
