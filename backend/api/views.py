@@ -48,12 +48,17 @@ def api_root(request, format=None):
             'initiate-reset-password': {
                 'url': reverse('initiate_reset_password', request=request, format=format),
                 'method': 'POST',
-                'description': 'Initiate password reset process'
+                'description': 'Initiate password reset process if the user FORGOT password'
             },
             'confirm-reset-password': {
                 'url': reverse('confirm_reset_password', request=request, format=format),
                 'method': 'POST',
-                'description': 'Confirm password reset with verification code'
+                'description': 'Confirm forgot-password reset with verification code'
+            },
+            'change-password': {
+                'url': reverse('change_password', request=request, format=format),
+                'method': 'POST',
+                'description': 'Change the user password if they provide the old one.'
             },
             'friendlist': {
                 'url': reverse('get_user_friends', request=request, format=format),
@@ -69,6 +74,21 @@ def api_root(request, format=None):
                 'url': reverse('get_user_profile', request=request, format=format),
                 'method': 'POST',
                 'description': 'Gets the user details from the database.'
+            },
+            'update-user-profile': {
+                'url': reverse('update_user_profile', request=request, format=format),
+                'method': 'PATCH',
+                'description': 'updates the user-details into the database.'
+            },
+            'send-friend-request': {
+                'url': reverse('send_friend_request', request=request, format=format),
+                'method': 'POST',
+                'description': 'send friend request to mentioned user.'
+            },
+            'accept-friend-request': {
+                'url': reverse('accept_friend_request', request=request, format=format),
+                'method': 'POST',
+                'description': 'accept friend request.'
             }
         },
         'version': 'development',
@@ -156,35 +176,38 @@ def verify_signup(request):
 @api_view(['POST'])
 def user_login(request):
     """
-    Login user with username and password
+    Login user with email and password
     
     Request body:
     {
-        "username": "example_user",
+        "email": "example@example.com",
         "password": "Example123!"
     }
     """
     serializer = UserLoginSerializer(data=request.data)
     if serializer.is_valid():
-        cognito = CognitoService()
-        result = cognito.login_user(**serializer.validated_data)
-        
-        if result['status'] == 'SUCCESS':
+        db = DatabaseService()
+        req = db.get_username_by_email(serializer.validated_data['email'])
+        if req['status'] == 'SUCCESS':
+            cognito = CognitoService()
+            result = cognito.login_user(username=req['username'],
+            password= serializer.validated_data['password'])
+            if result['status'] == 'SUCCESS':
+                return Response({
+                    'status': 'success',
+                    'message': result['message'],
+                    'access_token': result['access_token'],
+                    'refresh_token': result['refresh_token'],
+                    'id_token': result['id_token']
+                }, status=status.HTTP_200_OK)
+            
             return Response({
-                'status': 'success',
+                'status': 'error',
                 'message': result['message'],
-                'access_token': result['access_token'],
-                'refresh_token': result['refresh_token'],
-                'id_token': result['id_token']
-            }, status=status.HTTP_200_OK)
-        
-        return Response({
-            'status': 'error',
-            'message': result['message'],
-            'error_code': result.get('error_code'),
-            'details': 'Verification failed'
-        }, status=status.HTTP_400_BAD_REQUEST)
-        
+                'error_code': result.get('error_code'),
+                'details': 'Login failed'
+            }, status=status.HTTP_400_BAD_REQUEST) 
+        return Response(req,status=status.HTTP_400_BAD_REQUEST)       
     return Response({
         'status': 'error',
         'message': 'Invalid input',
@@ -255,13 +278,13 @@ def initiate_reset_password(request):
     
     Request body:
     {
-        "id_token": "QwErTYuioP"
+        "email": "abc@examplemail.com"
     }
     """
     serializer = InitiateResetPasswordSerializer(data=request.data)
     if serializer.is_valid():
         cognito = CognitoService()
-        result = cognito.initiate_password_reset(serializer.validated_data['id_token'])
+        result = cognito.initiate_password_reset(serializer.validated_data['email'])
         
         if result['status'] == 'SUCCESS':
             return Response(result, status=status.HTTP_200_OK)
@@ -281,7 +304,7 @@ def confirm_reset_password(request):
     
     Request body:
     {
-        "id_token": "QwErTYuioP",
+        "email": "abc@example.com",
         "confirmation_code": "123456",
         "new_password": "NewPassword123!"
     }
@@ -290,7 +313,7 @@ def confirm_reset_password(request):
     if serializer.is_valid():
         cognito = CognitoService()
         result = cognito.confirm_password_reset(
-            id_token=serializer.validated_data['id_token'],
+            email=serializer.validated_data['email'],
             confirmation_code=serializer.validated_data['confirmation_code'],
             new_password=serializer.validated_data['new_password']
         )
@@ -416,3 +439,149 @@ def get_user_profile(request):
         'message': 'Invalid input',
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def change_password(request):
+    """
+    Change the password IF AND ONLY IF user remembers
+    the current password and provides a valid accessToken.
+
+    Request body:
+    {
+        "old_password" : "Example123!",
+        "new_password" : "Example123!",
+        "access_token" : "QwerTy"
+    } 
+    """
+    serializer = ChangePasswordSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        result = cognito.change_password(serializer.validated_data['old_password'],
+                                         serializer.validated_data['new_password'],
+                                         serializer.validated_data['access_token'])
+        if result['status'] == 'SUCCESS':
+            return Response(result, status=status.HTTP_200_OK)
+        return Response(result, status=status.HTTP_400_BAD_REQUEST)
+
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['PATCH'])
+def update_user_profile(request):
+    """
+    Updates the user's profile fields using an id_token
+    and optional fields like full_name, phone_number, avatar_url, currency, etc.
+
+    Request Body:
+    {
+        "id_token": "your-id-token",
+        "full_name": "New Name",  # optional
+        "phone_number": "+1234567890",  # optional
+        "avatar_url": "https://example.com/avatar.jpg",  # optional
+        "currency": "USD"  # optional
+    }
+    """
+    serializer = UpdateUserProfileSerializer(data=request.data, partial=True)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        decoded = cognito.get_user_id(serializer.validated_data['id_token'])
+        if decoded['status'] == 'SUCCESS':
+            db = DatabaseService()
+            update_result = db.update_user_details(decoded['user_sub'],
+                full_name=serializer.validated_data.get('full_name'),
+                phone_number=serializer.validated_data.get('phone_number'),
+                avatar_url=serializer.validated_data.get('avatar_url'),
+                currency=serializer.validated_data.get('currency')
+            )
+            if update_result['status'] == 'SUCCESS':
+                return Response(update_result, status=status.HTTP_200_OK)
+            else:
+                return Response(update_result, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                'status': 'ERROR',
+                'message': 'Could not decode user',
+                'details': decoded.get('message')
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def send_friend_request(request):
+    """
+    Send a friend request on behalf of the authenticated user.
+    
+    Request Body Example:
+    {
+        "id_token": "user-id-token",
+        "recieve_username": "friend_username" 
+        // OR "recieve_useremail": "friend@example.com"
+    }
+    """
+    serializer = FriendRequestSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        id_result = cognito.get_user_id(serializer.validated_data['id_token'])
+        if id_result['status'] == 'SUCCESS':
+            user_sub = id_result['user_sub']
+            db = DatabaseService()
+            result = db.get_user_id_by_cognito_id(user_sub)
+            if result['status'] == 'SUCCESS':
+                user_id = result['user_id']
+                expected_keys = ['recieve_username', 'recieve_useremail']
+                filtered_data = {key: value for key, value in serializer.validated_data.items() if key in expected_keys}
+                result1 = db.send_friend_request(user_id, **filtered_data)
+                if result1['status'] == 'SUCCESS':
+                    return Response(result1, status=status.HTTP_200_OK)
+                else:
+                    return Response(result1, status=status.HTTP_400_BAD_REQUEST)
+            else:
+                return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            return Response({
+                'status': 'error',
+                'message': 'User verification failed',
+                'details': id_result.get('message', 'Invalid id_token')
+            }, status=status.HTTP_401_UNAUTHORIZED)
+    
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)    
+
+@api_view(['POST'])
+def accept_friend_request(request):
+    """
+    Accept a friend request on behalf of the authenticated user.
+    
+    Request Body Example:
+    {
+        "id_token": "user-id-token",
+        "request_id": "FriEndReqUestId" 
+    }
+    """
+    serializer = AcceptFriendRequestSerializer(data=request.data)
+    if serializer.is_valid():
+        cognito = CognitoService()
+        id_req = cognito.get_user_id(id_token=serializer.validated_data['id_token'])
+        if id_req['status'] == 'SUCCESS':
+            cognito_id = id_req['user_sub']
+            db = DatabaseService()
+            result = db.accept_friend_request(cognito_id=cognito_id, request_id=serializer.validated_data['request_id'])
+            if result['status'] == 'SUCCESS':
+                return Response(result, status=status.HTTP_202_ACCEPTED)
+            return Response(result, status=status.HTTP_400_BAD_REQUEST)
+        return Response(id_req, status=status.HTTP_401_UNAUTHORIZED)
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)    
+

@@ -310,47 +310,50 @@ class CognitoService:
                 'message': e.response['Error']['Message']
             }
 
-    def initiate_password_reset(self, id_token):
+    def initiate_password_reset(self, email):
         """
-        Initiates the password reset process for a user
+        Initiates the FORGOT password process for a user
         
         Args:
-            id_token (str): The ID token from authentication
+            email (str): The email address of the user
             
         Returns:
             dict: Status of the password reset initiation
         """
         try:
-            # Extract username from ID token
-            decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-            username = decoded_token.get('cognito:username')
-
-            if not username:
+            # First find the user by email attribute
+            params = {
+                'UserPoolId': settings.COGNITO_USER_POOL_ID,
+                'Filter': f'email = "{email}"',
+            }
+            
+            response = self.client.list_users(**params)
+            
+            if not response.get('Users', []):
                 return {
                     'status': 'ERROR',
-                    'message': 'Could not extract username from ID token'
+                    'message': 'No user found with this email'
                 }
+            
+            # Get the username from the first (and should be only) user
+            username = response['Users'][0]['Username']
 
-            params = {
+            # Now initiate forgot password with the username
+            forgot_params = {
                 'ClientId': self.client_id,
                 'Username': username
             }
 
             if self.client_secret:
-                params['SecretHash'] = self.get_secret_hash(username)
+                forgot_params['SecretHash'] = self.get_secret_hash(username)
 
-            self.client.forgot_password(**params)
+            self.client.forgot_password(**forgot_params)
             
             return {
                 'status': 'SUCCESS',
                 'message': 'Password reset code sent to your email'
             }
 
-        except jwt.InvalidTokenError:
-            return {
-                'status': 'ERROR',
-                'message': 'Invalid token format'
-            }
         except ClientError as e:
             return {
                 'status': 'ERROR',
@@ -358,12 +361,12 @@ class CognitoService:
                 'message': e.response['Error']['Message']
             }
 
-    def confirm_password_reset(self, id_token, confirmation_code, new_password):
+    def confirm_password_reset(self, email, confirmation_code, new_password):
         """
-        Confirms password reset with the code and new password
+        Confirms password reset with the code and new password using email
         
         Args:
-            id_token (str): The ID token from authentication
+            email (str): The email address of the user
             confirmation_code (str): The code sent to user's email
             new_password (str): The new password to set
             
@@ -371,17 +374,24 @@ class CognitoService:
             dict: Status of the password reset confirmation
         """
         try:
-            # Extract username from ID token
-            decoded_token = jwt.decode(id_token, options={"verify_signature": False})
-            username = decoded_token.get('cognito:username')
-
-            if not username:
+            # First find the user by email attribute
+            params = {
+                'UserPoolId': settings.COGNITO_USER_POOL_ID,
+                'Filter': f'email = "{email}"',
+            }
+            
+            response = self.client.list_users(**params)
+            
+            if not response.get('Users', []):
                 return {
                     'status': 'ERROR',
-                    'message': 'Could not extract username from ID token'
+                    'message': 'No user found with this email'
                 }
+            
+            # Get the username from the first user
+            username = response['Users'][0]['Username']
 
-            params = {
+            confirm_params = {
                 'ClientId': self.client_id,
                 'Username': username,
                 'ConfirmationCode': confirmation_code,
@@ -389,20 +399,15 @@ class CognitoService:
             }
 
             if self.client_secret:
-                params['SecretHash'] = self.get_secret_hash(username)
+                confirm_params['SecretHash'] = self.get_secret_hash(username)
 
-            self.client.confirm_forgot_password(**params)
+            self.client.confirm_forgot_password(**confirm_params)
             
             return {
                 'status': 'SUCCESS',
                 'message': 'Password has been reset successfully'
             }
 
-        except jwt.InvalidTokenError:
-            return {
-                'status': 'ERROR',
-                'message': 'Invalid token format'
-            }
         except ClientError as e:
             return {
                 'status': 'ERROR',
@@ -502,3 +507,47 @@ class CognitoService:
                 'error_code': e.response['Error']['Code'],
                 'message': e.response['Error']['Message']
             }
+    
+    def change_password(self, old_password, new_password, access_token):
+        """
+        Change the password IF AND ONLY IF user remembers
+        the current password and provides a valid accessToken.
+
+        Args:
+            access_token (str): The access token from the client
+            old_password(str): The user's previous password
+            new_password(str): Required
+        
+        Returns:
+            dict: The response from the server to the change password request.
+        """
+
+        try:
+            response = self.client.change_password(
+                PreviousPassword=old_password,
+                ProposedPassword=new_password,
+                AccessToken=access_token
+            )
+            
+            return {
+                'status': 'SUCCESS',
+                'message': 'Password changed successfully'
+            }
+
+        except self.client.exceptions.NotAuthorizedException:
+            return {
+                'status': 'ERROR',
+                'message': 'Invalid access token or incorrect previous password'
+            }
+        except self.client.exceptions.LimitExceededException:
+            return {
+                'status': 'ERROR',
+                'message': 'Attempt limit exceeded, please try after some time'
+            }
+        except ClientError as e:
+            return {
+                'status': 'ERROR',
+                'error_code': e.response['Error']['Code'],
+                'message': e.response['Error']['Message']
+            }
+            
