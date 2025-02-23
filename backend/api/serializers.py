@@ -99,3 +99,12 @@ class AcceptFriendRequestSerializer(serializers.Serializer):
 class RemoveFriendSerializer(serializers.Serializer):
     id_token = serializers.CharField(required=True)
     friend_id = serializers.CharField(required=True)
+
+class AddExpenseSerializer(serializers.Serializer):
+    id_token = serializers.CharField(required=True)
+    amount = serializers.FloatField(required=True)
+    description = serializers.CharField(required=True)
+    date = serializers.DateField(required=True)
+    group_id = serializers.CharField(required=False)
+
+

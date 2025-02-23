@@ -377,3 +377,27 @@ class DatabaseService:
                 'status': 'ERROR',
                 'message': str(e)
             }
+        
+    @staticmethod
+    def add_expense(self, payer_id, description, total_amount, group_id=None):
+        try:
+            with self.conn.cursor() as cursor:
+                sql = """
+                    INSERT INTO expenses (payer_id, description, total_amount, group_id)
+                    VALUES (%s, %s, %s, %s)
+                    RETURNING id
+                """
+                cursor.execute(sql, (payer_id, description, total_amount, group_id))
+                expense_id = cursor.fetchone()[0]
+                self.conn.commit()
+                return {
+                    'status': 'SUCCESS',
+                    'message': 'Expense added successfully',
+                    'expense_id': expense_id
+                }
+        except Exception as e:
+            self.conn.rollback()
+            return {
+                'status': 'ERROR',
+                'message': str(e)
+            }

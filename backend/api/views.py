@@ -625,3 +625,54 @@ def remove_friend(request):
         'errors': serializer.errors
     }, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['POST'])
+def add_expense(request):
+    """
+    Add a new expense.
+    
+    Request Body:
+    {
+        "id_token": "user-id-token",
+        "description": "Dinner",
+        "total_amount": "50.00",
+        "group_id": 1  // Optional
+    }
+    """
+    serializer = AddExpenseSerializer(data=request.data)
+    if serializer.is_valid():
+        # Verify user
+        cognito = CognitoService()
+        id_result = cognito.get_user_id(serializer.validated_data['id_token'])
+        
+        if id_result['status'] == 'SUCCESS':
+            user_sub = id_result['user_sub']
+            db = DatabaseService()
+            
+            # Get user ID
+            user_result = db.get_user_id_by_cognito_id(user_sub)
+            if user_result['status'] == 'SUCCESS':
+                # Add expense
+                expense_result = db.add_expense(
+                    payer_id=user_result['user_id'],
+                    description=serializer.validated_data['description'],
+                    total_amount=serializer.validated_data['total_amount'],
+                    group_id=serializer.validated_data.get('group_id')
+                )
+                
+                if expense_result['status'] == 'SUCCESS':
+                    return Response(expense_result, status=status.HTTP_201_CREATED)
+                return Response(expense_result, status=status.HTTP_400_BAD_REQUEST)
+            return Response(user_result, status=status.HTTP_400_BAD_REQUEST)
+            
+        return Response({
+            'status': 'error',
+            'message': 'User verification failed'
+        }, status=status.HTTP_401_UNAUTHORIZED)
+        
+    return Response({
+        'status': 'error',
+        'message': 'Invalid input',
+        'errors': serializer.errors
+    }, status=status.HTTP_400_BAD_REQUEST)
+
+
